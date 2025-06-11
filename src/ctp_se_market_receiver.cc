@@ -1,18 +1,21 @@
 #include "ctp_se_market_receiver.h"
 
-CtpSeMarketReceiver::CtpSeMarketReceiver(const std::string& config_file) : config_file_(config_file) {
+CtpSeMarketReceiver::CtpSeMarketReceiver(const std::string& config_file, const std::string& secinfo_file) : config_file_(config_file), secinfo_file_() {
 }
 
 CtpSeMarketReceiver::~CtpSeMarketReceiver() {
   ctp_api_->Release();
+  delete 
   delete market_writer_;
+  delete csv_reader_;
 }
 
 bool CtpSeMarketReceiver::Init() {
+  csv_reader_ = new CsvReader(secinfo_file_);
   market_writer_ = new MMapWriter<FutureMarketData>(config_map_["mmap_base_dir"]);
   ctp_api_->CThostFtdcMdApi::CreateFtdcMdApi("", false, false);
   ctp_api_->RegisterSpi(this);
-  ctp_api_>RegisterFront(config_map_["front_addr"]);
+  ctp_api_->RegisterFront(const_cast<char*>(config_map_["front_addr"].c_str()));
   ctp_api_->Init();
   if (!check_action(LOGIN)) {
     LOG(ERROR) << "Login Timeout";
@@ -24,18 +27,18 @@ bool CtpSeMarketReceiver::Init() {
 void CtpSeMarketReceiver::OnFrontConnected() {
   LOG(INFO) << "OnFrontConnected, Start to Login";
   CThostFtdcReqUserLoginField login_req;
-  login_req.BrokerID = config_map_["broker_id"];
-  login_req.UserID = config_map_["user_id"];
-  login_req.Password = config_map_["password"];
-  login_req.MacAddress = config_map_["mac"];
-  login_req.ClientIPPort = config_map_["port"];
-  login_req.ClientIPAddress = config_map_["ip_addr"];
+  strncpy(login_req.BrokerID, config_map_["broker_id"].c_str(), config_map_["broker_id"].size());
+  strncpy(login_req.UserID, config_map_["user_id"].c_str(), config_map_["user_id"].size());
+  strncpy(login_req.Password, config_map_["password"].c_str(), config_map_["password"].size());
+  strncpy(login_req.MacAddress, config_map_["mac"].c_str(), config_map_["mac"].size());
+  login_req.ClientIPPort = std::stoi(config_map_["port"]);
+  strncpy(login_req.ClientIPAddress, config_map_["ip_addr"].c_str(), config_map_["ip_addr"].size());
   ctp_api_->ReqUserLogin(&login_req, req_id_++);
 }
 
 void CtpSeMarketReceiver::OnFrontDisconnected(int reason) {
   LOG(ERROR)
-    << "OnFrontDisconnected, Reason code: [";
+    << "OnFrontDisconnected, Reason code: ["
     << reason << "]";
 }
 
@@ -44,7 +47,7 @@ void CtpSeMarketReceiver::OnRspUserLogin(CThostFtdcRspUserLoginField *login_fiel
     LOG(ERROR) << "Login field is nullptr";
     return;
   }
-  std::lock_guard<std::mutex> l(login_mutex_);
+  std::lock_guard<std::mutex> l(mutex_vec_[LOGIN]);
   LOG(INFO) << "Login Success.";
   login_ = true;
   cv_vec_[LOGIN].notify_one();
@@ -59,29 +62,8 @@ void CtpSeMarketReceiver::OnRspUserLogout(CThostFtdcUserLogoutField * logout_fie
   login_ = false;
 }
 
-void CtpSeMarketReceiver::QueryInstCode() {
-  for (std::string& exchange : exchange_vec_) {
-    LOG(INFO) << "Start to query Exchange Code: [" << exchange << "]";
-    CThostFtdcQryInstrumentField req;
-    memset(&req, 0, sizeof(CThostFtdcQryInstrumentField));
-    strcpy(&req.ExchangeID, exchange.c_str(), exchange.size());
-    ctp_api_->ReqQryInstrument(&req, req_id_++);
-
-    if (!check_action(QUERY_INST)) {
-      LOG(ERROR) << "Query [" << exchange << "], Timeout.";
-      continue;
-    }
-  }
-}
-
-void CtpSeMarketReceiver::OnRspQryInstrument(CThostFtdcInstrumentField *inst_field, CThostFtdcRspInfoField *info, int req_id, bool is_last) {
-  if (inst_field == nullptr || info == nullptr) {
-    LOG(ERROR) << "Instrument Info is nullptr";
-    return;
-  }
-  std::string uid = std::string{inst_field->InstrumentID} + "-" + std::string{inst_field->ExchangeInstID} + "-" + std::string{inst_field->ProductID};
-  uid_vec_.push_back(std::move(uid));
-  cv_vec_[QUERY_INST].notify_one();
+std::vector<std::string> CtpSeMarketReceiver::GetInstVec() {
+  return csv_reader_.ReadColumnByIndex();
 }
 
 void CtpSeMarketReceiver::Subscribe() {
@@ -89,7 +71,7 @@ void CtpSeMarketReceiver::Subscribe() {
   char* subscribe_inst_arr[inst_size];
   int i = 0;
   for (const std::string& uid : uid_vec_) {
-    subscribe_inst_arr[i++] = uid.c_str();
+    subscribe_inst_arr[i++] = const_cast<char*>(uid.c_str());
   }
   ctp_api_->SubscribeMarketData(subscribe_inst_arr, inst_size);
   if (!check_action(SUBSCRIBE_INST)) {
@@ -107,7 +89,7 @@ void CtpSeMarketReceiver::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *
 }
 
 void CtpSeMarketReceiver::OnRspError(CThostFtdcRspInfoField *info, int req_id, bool is_last) {
-  LOG(ERROR) << "OnRspError"
+  LOG(ERROR) << "OnRspError";
 }
 
 void CtpSeMarketReceiver::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *market_data) {
@@ -146,16 +128,21 @@ void CtpSeMarketReceiver::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *m
   data.bid_volume[3] = market_data->BidVolume4;
   data.bid_volume[4] = market_data->BidVolume5;
 
-  strcpy(&data.exchange_id, market_data->ExchangeID);
-  strcpy(&data.uid, market_data->InstrumentID);
+  data.vendor_time = static_cast<uint64_t>(market_data->UpdateMillisec);
+  auto ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  data.local_time = static_cast<uint64_t>(ts);
+
+  strcpy(data.exchange_id, market_data->ExchangeID);
+  strcpy(data.uid, market_data->InstrumentID);
 
   market_writer_->Prefault(std::move(data));
 }
 
 bool CtpSeMarketReceiver::check_action(int action) {
   std::unique_lock<std::mutex> l(mutex_vec_[action]);
-  auto res = cv_vec_[action].wait_for(l, std::chrono::system_clock::seconds(timeout_));
+  auto res = cv_vec_[action].wait_for(l, std::chrono::seconds(timeout_));
   if (res == std::cv_status::timeout) {
     return false;
   }
+  return true;
 }

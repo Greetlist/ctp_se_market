@@ -2,6 +2,7 @@ add_rules("mode.debug", "mode.release")
 add_requires("glog", "gflags")
 
 target("ctp_se_market")
+    add_packages("glog", "gflags")
     set_kind("binary")
     add_includedirs("include")
     add_linkdirs("lib")

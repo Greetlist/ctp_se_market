@@ -14,6 +14,8 @@ struct FutureMarketData {
   double ask_price[5];
   double bid_price[5];
   double hold_volume;
+  uint64_t vendor_time;
+  uint64_t local_time;
   int ask_volume[5];
   int bid_volume[5];
   char exchange_id[8];
