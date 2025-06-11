@@ -11,9 +11,9 @@ struct FutureMarketData {
   double open;
   double low;
   double close;
-  double ask[5];
-  double bid[5];
-  int hold_volume;
+  double ask_price[5];
+  double bid_price[5];
+  double hold_volume;
   int ask_volume[5];
   int bid_volume[5];
   char exchange_id[8];
