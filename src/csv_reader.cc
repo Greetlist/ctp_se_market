@@ -1,6 +1,6 @@
 #include "csv_reader.h"
 
-CsvReader::CsvReader(const std::string&& csv_path) : csv_path_(csv_path) {}
+CsvReader::CsvReader(const std::string& csv_path) : csv_path_(csv_path) {}
 
 std::vector<std::string> CsvReader::ReadColumnByIndex(int index) {
   std::vector<std::string> res;

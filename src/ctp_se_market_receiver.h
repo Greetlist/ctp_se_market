@@ -13,6 +13,7 @@
 #include "ThostFtdcMdApi.h"
 #include "ThostFtdcTraderApi.h"
 #include "mmap_writer.h"
+#include "csv_reader.h"
 #include "market_data.h"
 
 enum Action {
@@ -28,7 +29,7 @@ public:
 
   bool Init();
   std::vector<std::string> GetInstVec();
-  void Subscribe();
+  void Subscribe(const std::vector<std::string>&& inst_vec);
 
   void OnFrontConnected() override;
   void OnFrontDisconnected(int nReason) override;
@@ -48,7 +49,7 @@ private:
   std::atomic<bool> login_ = false;
   std::atomic<int> req_id_ = 0;
   MMapWriter<FutureMarketData>* market_writer_ = nullptr;
-  CsvReader csv_reader_;
+  CsvReader* csv_reader_;
   CThostFtdcMdApi* ctp_api_ = nullptr;
 
   std::condition_variable cv_vec_[ACTION_NUM];

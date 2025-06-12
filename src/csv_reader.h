@@ -13,11 +13,9 @@ enum class Exchange {
   Unknown,
 };
 
-using ExchangeMap = std::unordered_multimap<Exchange, std::string>;
-
 class CsvReader {
 public:
-  CsvReader(const std::string&&);
+  CsvReader(const std::string&);
   ~CsvReader() = default;
   std::vector<std::string> ReadColumnByIndex(int index);
 private:

@@ -12,10 +12,10 @@ DEFINE_string(secinfo_path, "", "instrument csv path");
 
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
-  CtpSeMarketReceiver* r = new CtpSeMarketReceiver(FLAGS_config_file_path);
+  CtpSeMarketReceiver* r = new CtpSeMarketReceiver(FLAGS_config_file_path, FLAGS_secinfo_path);
   r->Init();
-  r->QueryInstCode();
-  r->Subscribe();
+  std::vector<std::string> inst_vec = r->GetInstVec();
+  r->Subscribe(std::move(inst_vec));
 
   while (true) {
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));

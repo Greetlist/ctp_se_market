@@ -1,11 +1,10 @@
 #include "ctp_se_market_receiver.h"
 
-CtpSeMarketReceiver::CtpSeMarketReceiver(const std::string& config_file, const std::string& secinfo_file) : config_file_(config_file), secinfo_file_() {
+CtpSeMarketReceiver::CtpSeMarketReceiver(const std::string& config_file, const std::string& secinfo_file) : config_file_(config_file), secinfo_file_(secinfo_file) {
 }
 
 CtpSeMarketReceiver::~CtpSeMarketReceiver() {
   ctp_api_->Release();
-  delete 
   delete market_writer_;
   delete csv_reader_;
 }
@@ -63,14 +62,14 @@ void CtpSeMarketReceiver::OnRspUserLogout(CThostFtdcUserLogoutField * logout_fie
 }
 
 std::vector<std::string> CtpSeMarketReceiver::GetInstVec() {
-  return csv_reader_.ReadColumnByIndex();
+  return csv_reader_->ReadColumnByIndex(0);
 }
 
-void CtpSeMarketReceiver::Subscribe() {
-  int inst_size = uid_vec_.size();
+void CtpSeMarketReceiver::Subscribe(const std::vector<std::string>&& inst_vec) {
+  int inst_size = inst_vec.size();
   char* subscribe_inst_arr[inst_size];
   int i = 0;
-  for (const std::string& uid : uid_vec_) {
+  for (const std::string& uid : inst_vec) {
     subscribe_inst_arr[i++] = const_cast<char*>(uid.c_str());
   }
   ctp_api_->SubscribeMarketData(subscribe_inst_arr, inst_size);
