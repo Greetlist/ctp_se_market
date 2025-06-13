@@ -16,7 +16,7 @@ bool CtpSeMarketReceiver::Init() {
   ctp_api_->RegisterSpi(this);
   ctp_api_->RegisterFront(const_cast<char*>(config_map_["front_addr"].c_str()));
   ctp_api_->Init();
-  if (!check_action(LOGIN)) {
+  if (!CheckAction(LOGIN)) {
     LOG(ERROR) << "Login Timeout";
     return false;
   }
@@ -29,9 +29,9 @@ void CtpSeMarketReceiver::OnFrontConnected() {
   strncpy(login_req.BrokerID, config_map_["broker_id"].c_str(), config_map_["broker_id"].size());
   strncpy(login_req.UserID, config_map_["user_id"].c_str(), config_map_["user_id"].size());
   strncpy(login_req.Password, config_map_["password"].c_str(), config_map_["password"].size());
-  strncpy(login_req.MacAddress, config_map_["mac"].c_str(), config_map_["mac"].size());
-  login_req.ClientIPPort = std::stoi(config_map_["port"]);
-  strncpy(login_req.ClientIPAddress, config_map_["ip_addr"].c_str(), config_map_["ip_addr"].size());
+  //strncpy(login_req.MacAddress, config_map_["mac"].c_str(), config_map_["mac"].size());
+  //login_req.ClientIPPort = std::stoi(config_map_["port"]);
+  //strncpy(login_req.ClientIPAddress, config_map_["ip_addr"].c_str(), config_map_["ip_addr"].size());
   ctp_api_->ReqUserLogin(&login_req, req_id_++);
 }
 
@@ -70,10 +70,11 @@ void CtpSeMarketReceiver::Subscribe(const std::vector<std::string>&& inst_vec) {
   char* subscribe_inst_arr[inst_size];
   int i = 0;
   for (const std::string& uid : inst_vec) {
+    LOG(INFO) << "Subscribe: " << uid;
     subscribe_inst_arr[i++] = const_cast<char*>(uid.c_str());
   }
   ctp_api_->SubscribeMarketData(subscribe_inst_arr, inst_size);
-  if (!check_action(SUBSCRIBE_INST)) {
+  if (!CheckAction(SUBSCRIBE_INST)) {
     LOG(ERROR) << "Subscribe Timeout.";
   }
 }
@@ -137,7 +138,18 @@ void CtpSeMarketReceiver::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *m
   market_writer_->Prefault(std::move(data));
 }
 
-bool CtpSeMarketReceiver::check_action(int action) {
+void CtpSeMarketReceiver::InitConfig() {
+  config_map_["mmap_base_dir"] = "/home/greetlist/github_project/ctp_se_market/mmap/";
+  config_map_["front_addr"] = "tcp://180.168.146.187:10131";
+  config_map_["broker_id"] = "9999";
+  config_map_["user_id"] = "242911";
+  config_map_["password"] = "";
+  config_map_["mac"] = "48210b34fdec";
+  config_map_["port"] = "40200";
+  config_map_["ip_addr"] = "192.168.18.123";
+}
+
+bool CtpSeMarketReceiver::CheckAction(int action) {
   std::unique_lock<std::mutex> l(mutex_vec_[action]);
   auto res = cv_vec_[action].wait_for(l, std::chrono::seconds(timeout_));
   if (res == std::cv_status::timeout) {

@@ -41,7 +41,8 @@ public:
 
   static constexpr int timeout_ = 10; //seconds;
 private:
-  bool check_action(int action);
+  void InitConfig();
+  bool CheckAction(int action);
   //bool filter_inst_code(const std::string& inst_code); //if needed
   std::string config_file_;
   std::string secinfo_file_;
