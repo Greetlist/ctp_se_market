@@ -94,6 +94,10 @@ void CtpSeMarketReceiver::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *
   }
 }
 
+void CtpSeMarketReceiver::OnRspUnSubMarketData(CThostFtdcSpecificInstrumentField *pSpecificInstrument, CThostFtdcRspInfoField *pRspInfo, int nRequestID, bool bIsLast) {
+  LOG(ERROR) << "OnRspUnSubMarketData";
+}
+
 void CtpSeMarketReceiver::OnRspError(CThostFtdcRspInfoField *info, int req_id, bool is_last) {
   LOG(ERROR) << "OnRspError";
 }
