@@ -10,9 +10,10 @@ CtpSeMarketReceiver::~CtpSeMarketReceiver() {
 }
 
 bool CtpSeMarketReceiver::Init() {
+  InitConfig();
   csv_reader_ = new CsvReader(secinfo_file_);
   market_writer_ = new MMapWriter<FutureMarketData>(config_map_["mmap_base_dir"]);
-  ctp_api_->CThostFtdcMdApi::CreateFtdcMdApi("", false, false);
+  ctp_api_ = CThostFtdcMdApi::CreateFtdcMdApi("/home/greetlist/github_project/ctp_se_market/flow", false, false);
   ctp_api_->RegisterSpi(this);
   ctp_api_->RegisterFront(const_cast<char*>(config_map_["front_addr"].c_str()));
   ctp_api_->Init();
@@ -77,11 +78,16 @@ void CtpSeMarketReceiver::Subscribe(const std::vector<std::string>&& inst_vec) {
   if (!CheckAction(SUBSCRIBE_INST)) {
     LOG(ERROR) << "Subscribe Timeout.";
   }
+  LOG(INFO) << "Subscribe All inst code Success.";
 }
 
 void CtpSeMarketReceiver::OnRspSubMarketData(CThostFtdcSpecificInstrumentField *inst_field, CThostFtdcRspInfoField *info, int req_id, bool is_last) {
   if (inst_field == nullptr || info == nullptr) {
     LOG(ERROR) << "Subscribe Error";
+  }
+  LOG(INFO) << "Subscribe " << inst_field->InstrumentID << " Success.";
+  if (info != nullptr && info->ErrorID != 0) {
+    LOG(ERROR) << "Error id: " << info->ErrorID << ", Error Info: " << info->ErrorMsg;
   }
   if (is_last) {
     cv_vec_[SUBSCRIBE_INST].notify_one();
@@ -93,6 +99,7 @@ void CtpSeMarketReceiver::OnRspError(CThostFtdcRspInfoField *info, int req_id, b
 }
 
 void CtpSeMarketReceiver::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *market_data) {
+  LOG(INFO) << "CtpSeMarketReceiver::OnRtnDepthMarketData";
   FutureMarketData data;
   memset(&data, 0, sizeof(FutureMarketData));
   data.last_price = market_data->LastPrice;
@@ -140,7 +147,7 @@ void CtpSeMarketReceiver::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *m
 
 void CtpSeMarketReceiver::InitConfig() {
   config_map_["mmap_base_dir"] = "/home/greetlist/github_project/ctp_se_market/mmap/";
-  config_map_["front_addr"] = "tcp://180.168.146.187:10131";
+  config_map_["front_addr"] = "tcp://180.168.146.187:10211";
   config_map_["broker_id"] = "9999";
   config_map_["user_id"] = "242911";
   config_map_["password"] = "";

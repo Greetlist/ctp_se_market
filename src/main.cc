@@ -13,7 +13,9 @@ DEFINE_string(secinfo_path, "", "instrument csv path");
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   CtpSeMarketReceiver* r = new CtpSeMarketReceiver(FLAGS_config_file_path, FLAGS_secinfo_path);
-  r->Init();
+  if (!r->Init()) {
+    return -1;
+  }
   std::vector<std::string> inst_vec = r->GetInstVec();
   r->Subscribe(std::move(inst_vec));
 
