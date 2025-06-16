@@ -1,6 +1,6 @@
 #include "ctp_se_market_receiver.h"
 
-CtpSeMarketReceiver::CtpSeMarketReceiver(const std::string& config_file, const std::string& secinfo_file) : config_file_(config_file), secinfo_file_(secinfo_file) {
+CtpSeMarketReceiver::CtpSeMarketReceiver(const std::string& mmap_base_dir, const std::string& config_file, const std::string& secinfo_file) : mmap_base_dir_(mmap_base_dir), config_file_(config_file), secinfo_file_(secinfo_file) {
 }
 
 CtpSeMarketReceiver::~CtpSeMarketReceiver() {
@@ -12,7 +12,11 @@ CtpSeMarketReceiver::~CtpSeMarketReceiver() {
 bool CtpSeMarketReceiver::Init() {
   InitConfig();
   csv_reader_ = new CsvReader(secinfo_file_);
-  market_writer_ = new MMapWriter<FutureMarketData>(config_map_["mmap_base_dir"]);
+  market_writer_ = new MMapWriter<FutureMarketData>(mmap_base_dir_);
+  if (!market_writer_->Init()) {
+    LOG(ERROR) << "Init mmap writer error";
+    return false;
+  }
   ctp_api_ = CThostFtdcMdApi::CreateFtdcMdApi("/home/greetlist/github_project/ctp_se_market/flow", false, false);
   ctp_api_->RegisterSpi(this);
   ctp_api_->RegisterFront(const_cast<char*>(config_map_["front_addr"].c_str()));
@@ -106,6 +110,10 @@ void CtpSeMarketReceiver::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *m
   LOG(INFO) << "CtpSeMarketReceiver::OnRtnDepthMarketData";
   FutureMarketData data;
   memset(&data, 0, sizeof(FutureMarketData));
+  if (!market_data) {
+    LOG(ERROR) << "market data is nullptr.";
+    return;
+  }
   data.last_price = market_data->LastPrice;
   data.settlement_price = market_data->SettlementPrice;
   data.pre_close_price = market_data->PreClosePrice;
@@ -150,7 +158,6 @@ void CtpSeMarketReceiver::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *m
 }
 
 void CtpSeMarketReceiver::InitConfig() {
-  config_map_["mmap_base_dir"] = "/home/greetlist/github_project/ctp_se_market/mmap/";
   config_map_["front_addr"] = "tcp://180.168.146.187:10211";
   config_map_["broker_id"] = "9999";
   config_map_["user_id"] = "242911";

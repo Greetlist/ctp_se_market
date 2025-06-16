@@ -24,7 +24,7 @@ enum Action {
 
 class CtpSeMarketReceiver : public CThostFtdcMdSpi {
 public:
-  CtpSeMarketReceiver(const std::string& config_file, const std::string& secinfo_file);
+  CtpSeMarketReceiver(const std::string& mmap_base_dir, const std::string& config_file, const std::string& secinfo_file);
   ~CtpSeMarketReceiver();
 
   bool Init();
@@ -45,6 +45,7 @@ private:
   void InitConfig();
   bool CheckAction(int action);
   //bool filter_inst_code(const std::string& inst_code); //if needed
+  std::string mmap_base_dir_;
   std::string config_file_;
   std::string secinfo_file_;
   std::unordered_map<std::string, std::string> config_map_;
