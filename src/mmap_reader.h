@@ -54,15 +54,14 @@ public:
     return *ptr;
   }
 
-  bool ReadData() {
+  DataType* ReadData() {
     if (read_index_ >= GetDataCount()) {
       LOG(INFO) << "Read Finish, Total Record Count is: " << read_index_;
-      return false;
+      return nullptr;
     }
     DataType* data = (DataType*)((char*)data_ptr_ + (sizeof(DataType) * read_index_));
-    LOG(INFO) << "Uid: " << data->uid << ", Local Time: " << data->local_time << ", Vendor Time: " << data->vendor_time;
     read_index_++;
-    return true;
+    return data;
   }
 private:
   std::string mmap_base_dir_;

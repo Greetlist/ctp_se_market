@@ -33,7 +33,18 @@ int main(int argc, char** argv) {
       return -1;
     }
     LOG(INFO) << "Struct Size: " << reader->GetStructSize() << ", data len: " << reader->GetDataCount();
-    while (reader->ReadData()) {}
+    FutureMarketData* data = nullptr;
+    while ((data = reader->ReadData()) != nullptr) {
+      LOG(INFO)
+          << "Uid: " << data->uid
+          << ", High: " << data->high
+          << ", Open: " << data->open
+          << ", Low: " << data->low
+          << ", Close: " << data->close
+          << ", Local Time: " << data->local_time
+          << ", Vendor Time: " << data->vendor_time
+          << ", Vendor Update Time: " << data->vendor_update_time;
+    }
   }
   return 0;
 }

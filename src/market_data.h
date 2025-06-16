@@ -20,6 +20,7 @@ struct FutureMarketData {
   int bid_volume[5];
   char exchange_id[8];
   char uid[8];
+  char vendor_update_time[16];
 };
 
 #endif

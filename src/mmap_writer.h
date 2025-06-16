@@ -6,6 +6,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <string>
+#include <filesystem>
 
 template<class DataType>
 class MMapWriter {
@@ -19,22 +20,18 @@ public:
   }
 
   bool Init() {
-    data_fd_ = open((mmap_base_dir_ + std::string{"market.data"}).c_str(), O_RDWR|O_CREAT|O_TRUNC, 0777);
+    return InitDataMMap() && InitMetaMMap();
+  }
+
+  bool InitDataMMap() {
+    std::string data_file = mmap_base_dir_ + std::string{"market.data"};
+    data_fd_ = open(data_file.c_str(), O_RDWR|O_CREAT|O_TRUNC, 0777);
     if (data_fd_ < 0) {
       perror("open mmap error");
       return false;
     }
-
-    meta_fd_ = open((mmap_base_dir_ + std::string{"market.meta"}).c_str(), O_RDWR|O_CREAT, 0777);
-    if (meta_fd_ < 0) {
-      perror("open meta error");
-      return false;
-    }
-
     //Important !!!
     ftruncate(data_fd_, TOTAL_BYTES);
-    ftruncate(meta_fd_, META_BYTES);
-
     // for data ptr
     data_ptr_ = mmap(NULL, TOTAL_BYTES, PROT_READ|PROT_WRITE, MAP_SHARED, data_fd_, 0);
     if (data_ptr_ == MAP_FAILED) {
@@ -50,8 +47,34 @@ public:
       perror("madvise error");
       return false;
     }
+    return true;
+  }
 
-    // for meta ptr
+  bool InitMetaMMap() {
+    std::string meta_file = mmap_base_dir_ + std::string{"market.meta"};
+    if (std::filesystem::exists(meta_file)) {
+      meta_fd_ = open(meta_file.c_str(), O_RDWR|O_CREAT, 0777);
+      meta_ptr_ = mmap(NULL, META_BYTES, PROT_READ|PROT_WRITE, MAP_SHARED, meta_fd_, 0);
+      if (meta_ptr_ == MAP_FAILED) {
+        perror("open meta mmap error");
+        return false;
+      }
+
+      // set offset of data_ptr;
+      uint64_t cur_index = *(uint64_t*)((char*)meta_ptr_ + sizeof(uint64_t));
+      data_ptr_ = static_cast<char*>(data_ptr_) + sizeof(DataType) * cur_index;
+      return true;
+    }
+
+    meta_fd_ = open(meta_file.c_str(), O_RDWR|O_CREAT, 0777);
+    if (meta_fd_ < 0) {
+      perror("open meta error");
+      return false;
+    }
+
+    //Important !!!
+    ftruncate(meta_fd_, META_BYTES);
+
     meta_ptr_ = mmap(NULL, META_BYTES, PROT_READ|PROT_WRITE, MAP_SHARED, meta_fd_, 0);
     if (meta_ptr_ == MAP_FAILED) {
       perror("open meta mmap error");

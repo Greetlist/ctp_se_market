@@ -153,6 +153,7 @@ void CtpSeMarketReceiver::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *m
 
   strcpy(data.exchange_id, market_data->ExchangeID);
   strcpy(data.uid, market_data->InstrumentID);
+  strcpy(data.vendor_update_time, market_data->UpdateTime);
 
   market_writer_->Prefault(std::move(data));
 }
