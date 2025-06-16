@@ -159,7 +159,8 @@ void CtpSeMarketReceiver::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *m
 }
 
 void CtpSeMarketReceiver::InitConfig() {
-  config_map_["front_addr"] = "tcp://180.168.146.187:10211";
+  //config_map_["front_addr"] = "tcp://180.168.146.187:10211";
+  config_map_["front_addr"] = "tcp://180.168.146.187:10131"; // 7 * 24
   config_map_["broker_id"] = "9999";
   config_map_["user_id"] = "242911";
   config_map_["password"] = "";
