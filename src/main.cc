@@ -28,6 +28,11 @@ int main(int argc, char** argv) {
     }
   } else if (FLAGS_mode == std::string{"reader"}) {
     MMapReader<FutureMarketData>* reader = new MMapReader<FutureMarketData>(FLAGS_mmap_base_dir);
+    if (!reader->Init()) {
+      LOG(ERROR) << "Init Reader Error";
+      return -1;
+    }
+    LOG(INFO) << "Struct Size: " << reader->GetStructSize() << ", data len: " << reader->GetDataCount();
     while (reader->ReadData()) {}
   }
   return 0;

@@ -3,3 +3,5 @@ build/
 mmap/
 *.swp
 *.con
+*gdb*
+*core*

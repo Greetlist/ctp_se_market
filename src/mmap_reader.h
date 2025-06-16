@@ -18,17 +18,30 @@ public:
   }
 
   bool Init() {
+    // for data ptr
     data_fd_ = open((mmap_base_dir_ + std::string{"market.data"}).c_str(), O_RDONLY);
     if (data_fd_ < 0) {
-      perror("open mmap error");
+      perror("open data error");
+      return false;
+    }
+    data_ptr_ = mmap(NULL, TOTAL_BYTES, PROT_READ, MAP_SHARED, data_fd_, 0);
+    if (data_ptr_ == MAP_FAILED) {
+      perror("data mmap error");
       return false;
     }
 
+    // for meta ptr
     meta_fd_ = open((mmap_base_dir_ + std::string{"market.meta"}).c_str(), O_RDONLY);
     if (meta_fd_ < 0) {
       perror("open meta error");
       return false;
     }
+    meta_ptr_ = mmap(NULL, META_BYTES, PROT_READ, MAP_SHARED, meta_fd_, 0);
+    if (meta_ptr_ == MAP_FAILED) {
+      perror("meta mmap error");
+      return false;
+    }
+    return true;
   }
 
   uint64_t GetStructSize() {
@@ -46,7 +59,7 @@ public:
       LOG(INFO) << "Read Finish, Total Record Count is: " << read_index_;
       return false;
     }
-    DataType* data = (DataType*)(data_ptr_ + sizeof(DataType) * read_index_);
+    DataType* data = (DataType*)((char*)data_ptr_ + (sizeof(DataType) * read_index_));
     LOG(INFO) << "Uid: " << data->uid << ", Local Time: " << data->local_time << ", Vendor Time: " << data->vendor_time;
     read_index_++;
     return true;
@@ -57,7 +70,11 @@ private:
   void* meta_ptr_ = nullptr;
   int data_fd_;
   int meta_fd_;
-  int read_index_;
+  uint64_t read_index_;
+
+  static constexpr int MAX_MSG_LEN = 1024 * 1024 * 4;
+  static constexpr int TOTAL_BYTES = sizeof(DataType) * MAX_MSG_LEN;
+  static constexpr int META_BYTES = sizeof(uint64_t) * 2;
 };
 
 #endif

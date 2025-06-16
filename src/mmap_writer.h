@@ -38,7 +38,7 @@ public:
     // for data ptr
     data_ptr_ = mmap(NULL, TOTAL_BYTES, PROT_READ|PROT_WRITE, MAP_SHARED, data_fd_, 0);
     if (data_ptr_ == MAP_FAILED) {
-      perror("mmap error");
+      perror("open data mmap error");
       return false;
     }
 
@@ -54,11 +54,12 @@ public:
     // for meta ptr
     meta_ptr_ = mmap(NULL, META_BYTES, PROT_READ|PROT_WRITE, MAP_SHARED, meta_fd_, 0);
     if (meta_ptr_ == MAP_FAILED) {
-      perror("mmap error");
+      perror("open meta mmap error");
       return false;
     }
     //write data struct size first
     uint64_t* write_ptr = (uint64_t*)meta_ptr_;
+    memset(write_ptr, 0, META_BYTES);
     *write_ptr = sizeof(DataType);
     return true;
   }
@@ -68,14 +69,14 @@ public:
     data_ptr_ = static_cast<char*>(data_ptr_) + sizeof(DataType);
     asm volatile("" ::: "memory"); //prevent compiler reorder
     asm volatile("mfence" ::: "memory"); //prevent cpu reorder
-    uint64_t* write_ptr = (uint64_t*)(meta_ptr_ + sizeof(uint64_t));
+    uint64_t* write_ptr = (uint64_t*)((char*)meta_ptr_ + sizeof(uint64_t));
     (*write_ptr)++;
   }
 private:
   void manual_trigger_page_fault(int index) {
     char cur_buff[1];
-    memcpy(data_ptr_ + index * PAGE_SIZE, cur_buff, 1);
-    memset(data_ptr_ + index * PAGE_SIZE, 0, PAGE_SIZE);
+    memcpy((char*)data_ptr_ + index * PAGE_SIZE, cur_buff, 1);
+    memset((char*)data_ptr_ + index * PAGE_SIZE, 0, PAGE_SIZE);
   }
 
   std::string mmap_base_dir_;
