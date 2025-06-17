@@ -12,7 +12,7 @@ CtpSeMarketReceiver::~CtpSeMarketReceiver() {
 
 bool CtpSeMarketReceiver::Init() {
   ini_reader_ = new INIReader(config_file_);
-  config_map_ = ini_reader_->GetConfig()["CtpSe"];
+  config_map_ = ini_reader_->GetConfig()["CtpSE"];
   csv_reader_ = new CsvReader(secinfo_file_);
   market_writer_ = new MMapWriter<FutureMarketData>(mmap_base_dir_);
   if (!market_writer_->Init()) {
