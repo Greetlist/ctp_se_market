@@ -7,6 +7,7 @@
 
 #include "ctp_se_market_receiver.h"
 #include "mmap_reader.h"
+#include "ini_reader.h"
 
 DEFINE_string(mmap_base_dir, "", "mmap base dir");
 DEFINE_string(config_file_path, "", "config file");
@@ -44,6 +45,15 @@ int main(int argc, char** argv) {
           << ", Local Time: " << data->local_time
           << ", Vendor Time: " << data->vendor_time
           << ", Vendor Update Time: " << data->vendor_update_time;
+    }
+  } else if (FLAGS_mode == std::string{"test"}) {
+    INIReader reader{FLAGS_config_file_path};
+    auto m = reader.GetConfig();
+    for (auto [section, config] : m) {
+      std::cout << "Section: [" << section << "]" << std::endl;
+      for (auto [key, value] : config) {
+        std::cout << "Key: [" << key << "], Value: [" << value << "]" << std::endl;
+      }
     }
   }
   return 0;

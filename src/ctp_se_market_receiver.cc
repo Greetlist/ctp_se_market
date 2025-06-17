@@ -7,10 +7,12 @@ CtpSeMarketReceiver::~CtpSeMarketReceiver() {
   ctp_api_->Release();
   delete market_writer_;
   delete csv_reader_;
+  delete ini_reader_;
 }
 
 bool CtpSeMarketReceiver::Init() {
-  InitConfig();
+  ini_reader_ = new INIReader(config_file_);
+  config_map_ = ini_reader_->GetConfig()["CtpSe"];
   csv_reader_ = new CsvReader(secinfo_file_);
   market_writer_ = new MMapWriter<FutureMarketData>(mmap_base_dir_);
   if (!market_writer_->Init()) {
@@ -156,17 +158,6 @@ void CtpSeMarketReceiver::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *m
   strcpy(data.vendor_update_time, market_data->UpdateTime);
 
   market_writer_->Prefault(std::move(data));
-}
-
-void CtpSeMarketReceiver::InitConfig() {
-  //config_map_["front_addr"] = "tcp://180.168.146.187:10211";
-  config_map_["front_addr"] = "tcp://180.168.146.187:10131"; // 7 * 24
-  config_map_["broker_id"] = "9999";
-  config_map_["user_id"] = "242911";
-  config_map_["password"] = "";
-  config_map_["mac"] = "48210b34fdec";
-  config_map_["port"] = "40200";
-  config_map_["ip_addr"] = "192.168.18.123";
 }
 
 bool CtpSeMarketReceiver::CheckAction(int action) {

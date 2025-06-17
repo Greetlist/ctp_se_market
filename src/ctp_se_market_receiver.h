@@ -14,6 +14,7 @@
 #include "ThostFtdcTraderApi.h"
 #include "mmap_writer.h"
 #include "csv_reader.h"
+#include "ini_reader.h"
 #include "market_data.h"
 
 enum Action {
@@ -42,7 +43,6 @@ public:
 
   static constexpr int timeout_ = 10; //seconds;
 private:
-  void InitConfig();
   bool CheckAction(int action);
   //bool filter_inst_code(const std::string& inst_code); //if needed
   std::string mmap_base_dir_;
@@ -52,6 +52,7 @@ private:
   std::atomic<bool> login_ = false;
   std::atomic<int> req_id_ = 0;
   MMapWriter<FutureMarketData>* market_writer_ = nullptr;
+  INIReader* ini_reader_;
   CsvReader* csv_reader_;
   CThostFtdcMdApi* ctp_api_ = nullptr;
 

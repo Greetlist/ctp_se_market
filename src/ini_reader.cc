@@ -3,22 +3,25 @@
 INIReader::INIReader(const std::string& config_file) : config_file_(config_file) {}
 
 std::unordered_map<std::string, std::unordered_map<std::string, std::string>> INIReader::GetConfig() {
-  std::unordered_map<std::string, std::string> res;
+  std::unordered_map<std::string, std::unordered_map<std::string, std::string>> res;
   std::ifstream input(config_file_);
   if (!input.is_open()) {
-    std::cout << "Open [" << config_file_ << "] Error, Exit" << std::endl;
+    LOG(ERROR) << "Open [" << config_file_ << "] Error, Exit";
     std::exit(1);
   }
   while (true) {
     std::string line;
     std::getline(input, line);
+    if (input.eof()) {
+      break;
+    }
 
     line.erase(
         std::remove_if(
             line.begin(), line.end(),
             [](unsigned char x) { return std::isspace(x); }
         ),
-        str.end()
+        line.end()
     );
 
     if (line.size() == 0 || line[0] == ';') { //is empty line or line is comment
@@ -26,19 +29,26 @@ std::unordered_map<std::string, std::unordered_map<std::string, std::string>> IN
     }
     if (line[0] == '[') {
       auto last_it = line.find_last_of(']');
-      if (last_it != std::npos) {
+      if (last_it == std::string::npos) {
         LOG(ERROR) << "INI file [" << config_file_ << "] is invalid! Please check file. Exit";
         exit(-1);
       }
-      std::string map_key(line.begin()+1, last_it);
-      if (res.find(map_key) == res.end()) {
-        res[map_key] = std::unordered_map<std::string, std::string>();
+      line.erase(
+          std::remove_if(
+              line.begin(), line.end(),
+              [](unsigned char x) { return x == '[' || x == ']'; }
+          ),
+          line.end()
+      );
+      if (res.find(line) == res.end()) {
+        res[line] = std::unordered_map<std::string, std::string>();
+        last_section_ = line;
       }
       continue;
     }
 
     std::stringstream line_stream(line);
-    std::string key, value;
+    std::string cell, key, value;
     int cell_index = 0;
     std::string target;
     while (std::getline(line_stream, cell, '=')) {
@@ -47,12 +57,11 @@ std::unordered_map<std::string, std::unordered_map<std::string, std::string>> IN
       } else {
         value = cell;
       }
-      cell_index++;
+      if (cell_index++ >= 1) {
+        break;
+      }
     }
-    res[] = ;
-    if (input.eof()) {
-      break;
-    }
+    res[last_section_][key] = value;
   }
   return res;
 }

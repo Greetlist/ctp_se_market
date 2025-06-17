@@ -5,7 +5,6 @@
 #include <fstream>
 #include <sstream>
 #include <unordered_map>
-#include <ffstream>
 #include <algorithm>
 #include <glog/logging.h>
 
@@ -16,6 +15,7 @@ public:
   std::unordered_map<std::string, std::unordered_map<std::string, std::string>> GetConfig();
 private:
   std::string config_file_;
+  std::string last_section_;
 };
 
 #endif
