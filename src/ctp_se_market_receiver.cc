@@ -109,7 +109,7 @@ void CtpSeMarketReceiver::OnRspError(CThostFtdcRspInfoField *info, int req_id, b
 }
 
 void CtpSeMarketReceiver::OnRtnDepthMarketData(CThostFtdcDepthMarketDataField *market_data) {
-  LOG(INFO) << "CtpSeMarketReceiver::OnRtnDepthMarketData";
+  //LOG(INFO) << "CtpSeMarketReceiver::OnRtnDepthMarketData";
   FutureMarketData data;
   memset(&data, 0, sizeof(FutureMarketData));
   if (!market_data) {

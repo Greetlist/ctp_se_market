@@ -8,8 +8,10 @@
 #include "ctp_se_market_receiver.h"
 #include "mmap_reader.h"
 #include "ini_reader.h"
+#include "market_spliter.h"
 
 DEFINE_string(mmap_base_dir, "", "mmap base dir");
+DEFINE_string(output_base_dir, "./output", "csv output dir");
 DEFINE_string(config_file_path, "", "config file");
 DEFINE_string(secinfo_path, "", "instrument csv path");
 DEFINE_string(mode, "", "recorder or reader");
@@ -28,24 +30,12 @@ int main(int argc, char** argv) {
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
   } else if (FLAGS_mode == std::string{"reader"}) {
-    MMapReader<FutureMarketData>* reader = new MMapReader<FutureMarketData>(FLAGS_mmap_base_dir);
-    if (!reader->Init()) {
-      LOG(ERROR) << "Init Reader Error";
+    MarketSpliter* ms = new MarketSpliter(FLAGS_secinfo_path, FLAGS_mmap_base_dir, FLAGS_output_base_dir);
+    if (!ms->Init()) {
+      LOG(ERROR) << "Init market spliter error";
       return -1;
     }
-    LOG(INFO) << "Struct Size: " << reader->GetStructSize() << ", data len: " << reader->GetDataCount();
-    FutureMarketData* data = nullptr;
-    while ((data = reader->ReadData()) != nullptr) {
-      LOG(INFO)
-          << "Uid: " << data->uid
-          << ", High: " << data->high
-          << ", Open: " << data->open
-          << ", Low: " << data->low
-          << ", Close: " << data->close
-          << ", Local Time: " << data->local_time
-          << ", Vendor Time: " << data->vendor_time
-          << ", Vendor Update Time: " << data->vendor_update_time;
-    }
+    ms->Split();
   } else if (FLAGS_mode == std::string{"test"}) {
     INIReader reader{FLAGS_config_file_path};
     auto m = reader.GetConfig();
