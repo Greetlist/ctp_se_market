@@ -16,7 +16,7 @@ public:
   }
   void SetHeader() {
     if constexpr (std::is_same_v<DataType, FutureMarketData>) {
-      std::string header = "Uid,ExchangeId,LastPrice,High,Open,Low,Close,AvgPrice,HoldVolume,LocalTime,VendorUpdateTime,VendorTimeMilliSeconds";
+      std::string header = "Uid,ExchangeId,LastPrice,High,Open,Low,Close,HoldVolume,LocalTime,VendorUpdateTime,VendorTimeMilliSeconds";
       ofs_ << header << '\n' << std::flush;
     }
   }
@@ -26,7 +26,7 @@ public:
       ofs_ 
         << data.uid << "," << data.exchange_id << "," << data.last_price << ","
         << data.high << "," << data.open << "," << data.low << "," << data.close << ","
-        << data.avg_price << "," << data.hold_volume << ","
+        << data.hold_volume << ","
         << data.local_time << "," << data.vendor_update_time << "," << data.vendor_time << '\n'
         << std::flush;
     }
