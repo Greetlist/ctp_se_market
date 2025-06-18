@@ -7,5 +7,8 @@ mmap/
 *core*
 output/
 bar/
-*.out
+*out*
 __pycache__
+*perf*
+*svg*
+
