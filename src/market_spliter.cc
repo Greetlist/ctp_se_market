@@ -14,12 +14,12 @@ MarketSpliter::~MarketSpliter() {
 }
 
 bool MarketSpliter::Init() {
-  MMapReader<FutureMarketData>* reader = new MMapReader<FutureMarketData>(mmap_base_dir_);
-  if (!reader->Init()) {
+  reader_ = new MMapReader<FutureMarketData>(mmap_base_dir_);
+  if (!reader_->Init()) {
     LOG(ERROR) << "Init Reader Error";
     return false;
   }
-  LOG(INFO) << "Struct Size: " << reader->GetStructSize() << ", data len: " << reader->GetDataCount();
+  LOG(INFO) << "Struct Size: " << reader_->GetStructSize() << ", data len: " << reader_->GetDataCount();
 
   std::vector<std::string> inst_code_vec = GetInstVec();
   for (auto& inst : inst_code_vec) {
@@ -30,15 +30,19 @@ bool MarketSpliter::Init() {
     writers_[inst] = new CsvWriter<FutureMarketData>(output_file_name);
     writers_[inst]->SetHeader();
   }
-  reader_ = new MMapReader<FutureMarketData>(mmap_base_dir_);
-  return reader_->Init();
+  return true;
 }
 
 void MarketSpliter::Split() {
-  FutureMarketData* data = nullptr;
-  while ((data = reader_->ReadData()) != nullptr) {
-    std::string uid{data->uid};
-    writers_[uid]->WriteData(*data);
+  std::pair<FutureMarketData, bool> p;
+  while (true) {
+    p = reader_->ReadData();
+    if (!p.second) {
+      break;
+    }
+    FutureMarketData& data = p.first;
+    std::string uid{data.uid};
+    writers_[uid]->WriteData(data);
   }
 }
 

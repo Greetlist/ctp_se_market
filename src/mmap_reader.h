@@ -7,6 +7,7 @@
 #include <sys/mman.h>
 #include <string>
 #include <glog/logging.h>
+#include <map>
 
 template<class DataType>
 class MMapReader {
@@ -54,14 +55,15 @@ public:
     return *ptr;
   }
 
-  DataType* ReadData() {
+  std::pair<DataType, bool> ReadData() {
     if (read_index_ >= GetDataCount()) {
       LOG(INFO) << "Read Finish, Total Record Count is: " << read_index_;
-      return nullptr;
+      return std::make_pair<DataType, bool>(DataType(), false);
     }
-    DataType* data = (DataType*)((char*)data_ptr_ + (sizeof(DataType) * read_index_));
+    DataType data;
+    memcpy(&data, ((char*)data_ptr_ + (sizeof(DataType) * read_index_)), sizeof(DataType));
     read_index_++;
-    return data;
+    return std::make_pair<DataType, bool>(std::move(data), true);
   }
 private:
   std::string mmap_base_dir_;
