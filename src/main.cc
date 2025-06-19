@@ -27,6 +27,14 @@ int main(int argc, char** argv) {
     r->Subscribe(std::move(inst_vec));
 
     while (true) {
+      std::time_t now = std::time({});
+      char time_str[std::size("HH:MM:SS")];
+      std::strftime(std::data(time_str), std::size(time_str), "%T", std::localtime(&now));
+      LOG(INFO) << time_str;
+      if (std::string{time_str} > std::string{"15:30:00"}) {
+        LOG(INFO) << "End Of Trading Day, Exit.";
+        break;
+      }
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
   } else if (FLAGS_mode == std::string{"reader"}) {

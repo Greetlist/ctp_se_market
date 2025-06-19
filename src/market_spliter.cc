@@ -25,7 +25,7 @@ bool MarketSpliter::Init() {
   for (auto& inst : inst_code_vec) {
     std::time_t now = std::time({});
     char time_str[std::size("yyyy-mm-dd")];
-    std::strftime(std::data(time_str), std::size(time_str), "%F", std::gmtime(&now));
+    std::strftime(std::data(time_str), std::size(time_str), "%F", std::localtime(&now));
     std::string output_file_name = output_base_dir_ + "/" + inst + "." + std::string{time_str} + ".csv";
     writers_[inst] = new CsvWriter<FutureMarketData>(output_file_name);
     writers_[inst]->SetHeader();
