@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
       char time_str[std::size("HH:MM:SS")];
       std::strftime(std::data(time_str), std::size(time_str), "%T", std::localtime(&now));
       LOG(INFO) << time_str;
-      if (std::string{time_str} > std::string{"15:30:00"}) {
+      if (std::string{time_str} > std::string{"15:30:00"} && std::string{time_str} < std::string{"15:45:00"}) {
         LOG(INFO) << "End Of Trading Day, Exit.";
         break;
       }

@@ -97,4 +97,4 @@ class BarGenerator:
         res_df = pd.DataFrame(res_item_list)
         final_output_dir = os.path.join(self.output_dir, date.replace('-', '/'))
         os.makedirs(final_output_dir, exist_ok=True)
-        res_df.to_csv(os.path.join(final_output_dir, '{}.csv'.format(inst_code)))
+        res_df.to_csv(os.path.join(final_output_dir, '{}.csv'.format(inst_code)), index=False)
