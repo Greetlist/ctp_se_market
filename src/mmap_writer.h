@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <string>
 #include <filesystem>
+#include <iostream>
 
 template<class DataType>
 class MMapWriter {
@@ -25,6 +26,7 @@ public:
     if (!std::filesystem::exists(data_file) || !std::filesystem::exists(meta_file)) {
       std::filesystem::remove(data_file);
       std::filesystem::remove(meta_file);
+      std::cout << "Start to Init mmap." << std::endl;
       return InitDataMMap(data_file) && InitMetaMMap(meta_file);
     }
 
@@ -46,18 +48,23 @@ public:
       return false;
     }
     //Important !!!
-    ftruncate(data_fd_, TOTAL_BYTES);
+    if (ftruncate(data_fd_, TOTAL_BYTES) < 0) {
+      perror("ftruncate mmap error");
+      return false;
+    }
     data_ptr_ = mmap(NULL, TOTAL_BYTES, PROT_READ|PROT_WRITE, MAP_SHARED, data_fd_, 0);
     if (data_ptr_ == MAP_FAILED) {
       perror("open data mmap error");
       return false;
     }
 
+    std::cout << "Start trigger page_fault" << std::endl;
     manual_trigger_page_fault();
     if (madvise(data_ptr_, TOTAL_BYTES, MADV_WILLNEED) < 0) {
       perror("madvise error");
       return false;
     }
+    std::cout << "End of Init data mmap" << std::endl;
     return true;
   }
 
@@ -69,7 +76,10 @@ public:
     }
 
     //Important !!!
-    ftruncate(meta_fd_, META_BYTES);
+    if (ftruncate(meta_fd_, META_BYTES) < 0) {
+      perror("ftruncate mmap error");
+      return false;
+    }
 
     meta_ptr_ = mmap(NULL, META_BYTES, PROT_READ|PROT_WRITE, MAP_SHARED, meta_fd_, 0);
     if (meta_ptr_ == MAP_FAILED) {
@@ -80,6 +90,7 @@ public:
     uint64_t* write_ptr = (uint64_t*)meta_ptr_;
     memset(write_ptr, 0, META_BYTES);
     *write_ptr = sizeof(DataType);
+    std::cout << "End of Init meta mmap" << std::endl;
     return true;
   }
 
@@ -99,11 +110,13 @@ public:
 private:
   void manual_trigger_page_fault() {
     char cur_buff[1];
-    int total_page_count = TOTAL_BYTES / PAGE_SIZE + 1;
+    int total_page_count = TOTAL_BYTES / PAGE_SIZE;
+    std::cout << "total_page: " << total_page_count << std::endl;
     for (int i = write_index_; i < total_page_count; ++i) {
       memcpy((char*)data_ptr_ + i * PAGE_SIZE, cur_buff, 1);
       memset((char*)data_ptr_ + i * PAGE_SIZE, 0, PAGE_SIZE);
     }
+    std::cout << "end manual page fault" << std::endl;
   }
 
   std::string mmap_base_dir_;
@@ -112,10 +125,11 @@ private:
   void* meta_ptr_;
   int data_fd_;
   int meta_fd_;
+  //size_t PAGE_SIZE = sysconf(_SC_PAGESIZE);
+  static constexpr size_t PAGE_SIZE = 4096;
   static constexpr int MAX_MSG_LEN = 1024 * 1024 * 4;
-  static constexpr int TOTAL_BYTES = sizeof(DataType) * MAX_MSG_LEN;
+  static constexpr int TOTAL_BYTES = ((sizeof(DataType) * MAX_MSG_LEN) / PAGE_SIZE + 1) * PAGE_SIZE;
   static constexpr int META_BYTES = sizeof(uint64_t) * 2;
-  size_t PAGE_SIZE = sysconf(_SC_PAGESIZE);
 };
 
 #endif
